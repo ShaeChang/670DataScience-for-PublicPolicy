@@ -1,0 +1,18 @@
+"0","stretch_fun_test <- function(x,y){"
+"0","  #filter the votes data"
+"0","  sess <- y %>%"
+"0","    replace(., is.na(.), 0) %>%"
+"0","    filter(session == x) %>%"
+"0","    select(starts_with(""v""))"
+"0","  "
+"0","  print(sess)"
+"0","}"
+"0","stretch_fun_test(103, votes)"
+"1","[1m[33mError[39m:[22m
+[33m![39m Assigned data `values` must be compatible with existing data.
+[34mℹ[39m Error occurred for column `text`.
+[31m✖[39m Can't convert <double> to <character>.
+Backtrace:
+[90m  1. [39m[1mglobal[22m stretch_fun_test(103, votes)
+[90m 21. [39m[1mtibble[22m `<fn>`(`<vctrs___>`)
+"

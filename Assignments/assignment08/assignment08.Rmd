@@ -1,0 +1,348 @@
+---
+title: "assignment08"
+author: "Jinli Wu & Xiyu Zhang"
+date: "4/29/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, message=FALSE, warning=FALSE}
+library(tidyverse) 
+library(tidytext) 
+library(gutenbergr) 
+library(SnowballC)
+library(topicmodels)
+library(igraph)
+library(ggraph)
+library(tidymodels) 
+library(textrecipes) 
+library(vip)
+library(stopwords)
+library(janitor)
+library(patchwork)
+library(factoextra)
+library(gganimate)
+library(stats)
+library(gifski)
+```
+
+# Exercise 01
+## a 
+```{r,message=FALSE, warning=FALSE}
+votes_103 <- read_csv("data/votes_time_series.csv")%>%
+  replace(., is.na(.), 0)%>%
+  filter(session==103)
+```
+## b
+```{r}
+votes_numeric <- votes_103 %>%
+  select(starts_with("v"))
+votes_pca <- prcomp(votes_numeric)
+```
+##c
+```{r}
+summary(votes_pca)
+```
+47.56% of the variance is explained by the first principal component. 58.484% of the variance is explained by the first five principal components accumulatively. 
+
+## d
+```{r, message=FALSE, warning=FALSE}
+#extracting PCs
+votes_allpcs <- votes_pca %>%
+  .$x %>%
+  as_tibble()
+#creating party graph
+votes_pcs<- votes_allpcs%>%
+  select(PC1, PC2)%>%
+  bind_cols(.,votes_103)
+partyplot <-ggplot(data=votes_pcs,aes(PC1,PC2,color=party))+
+  geom_point()+
+  ggtitle("Scatter plot of two principle\ncomponents by party affiliation")
+#creating region graph
+regions <- read_csv("data/states_regions.csv")%>%
+  clean_names()
+votes_pcsregion <- votes_pcs %>%
+  mutate(state_code = state) %>%
+  left_join(regions, by = "state_code")
+regionplot <- ggplot(data=votes_pcsregion,aes(PC1,PC2,color=region))+
+  geom_point()+
+  ggtitle("Scatter plot of two principle\ncomponents by regions")
+#putting two graphs together
+partyplot+regionplot
+```
+
+# exercise 2
+## a
+```{r, message=FALSE, warning=FALSE}
+#examining best numbers of clusters
+set.seed(20220412)
+fviz_nbclust(votes_numeric, FUN = kmeans, method = "wss")
+fviz_nbclust(votes_numeric, FUN = kmeans, method = "silhouette")
+fviz_nbclust(votes_numeric, FUN = kmeans, method = "gap_stat")
+```
+## b
+```{r}
+#creating the function
+clusterfun <- function(x,y){
+  votes_pca <- prcomp(y)%>%
+  .$x %>%
+  as_tibble()
+  
+  votes_cluster <- kmeans(y, centers = x, nstart = 100)
+  
+  votes_combined <-bind_cols(y, votes_pca, cluster=votes_cluster$cluster)%>%
+    mutate(cluster=factor(cluster))
+  
+  ggplot(data=votes_combined, aes(PC1,PC2,color=cluster))+
+    geom_point()+
+    ggtitle(paste0("K-Means with K=", x, " and PCA"))
+}
+```
+## c
+```{r}
+#within sum of squares and silhouette distance suggest 2 clusters, while gap statistic suggests 4
+plot1 <- clusterfun(2,votes_numeric)
+plot2 <- clusterfun(4,votes_numeric)
+plot1+plot2
+```
+
+# Exercise 3
+## a
+```{r, message=FALSE,warning=FALSE}
+eosa <- read_csv("data/executive-orders.csv") %>%
+  filter(!is.na(text))%>%
+  unnest_tokens(output = bigram, input = text,token = "ngrams", n = 2)
+```
+## b
+```{r, message=FALSE,warning=FALSE}
+stopfirstsecond <- stop_words %>%
+  mutate(first=word, second=word)
+bigram_150 <- eosa %>%
+  separate(., bigram, into = c("first", "second"), sep = "\\s")%>%
+  anti_join(stopfirstsecond, by = "first") %>%
+  anti_join(stopfirstsecond, by = "second") %>%
+  count(first,second, sort = TRUE)%>%
+  filter(n>150)
+bigram_graph <- bigram_150 %>% 
+  graph_from_data_frame()
+set.seed(2017) 
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link() + 
+  geom_node_point() + 
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1)
+```
+## c
+```{r}
+tf_idf <- eosa %>%
+  separate(., bigram, into = c("first", "second"), sep = "\\s",remove = FALSE)%>%
+  anti_join(stopfirstsecond, by = "first") %>%
+  anti_join(stopfirstsecond, by = "second") %>%
+  count(bigram, president, sort = TRUE)%>%
+  bind_tf_idf(term = bigram, document = president, n = n)
+```
+
+## d
+```{r}
+tf_idf %>%
+  group_by(president) %>% 
+  top_n(15, tf_idf) %>% 
+  mutate(bigram = reorder(bigram, tf_idf)) %>% 
+  ggplot(aes(tf_idf, bigram, fill = president)) + 
+  geom_col() + 
+  facet_wrap(~president, scales = "free") + 
+  theme_minimal() + 
+  guides(fill = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+# Exercise 04
+## a
+```{r , message=FALSE,warning=FALSE}
+#reading in data
+bills <- read_csv("data/senate_bills_114.csv") %>% 
+  mutate(passed = factor(passed, labels = c("1", "0"), levels = c("1", "0")))
+bills%>%
+  count(passed)
+```
+108 bills passed
+
+## b
+```{r}
+#creating training and testing data
+set.seed(20220414)
+bills_split <- bills%>%
+  select(!bill_number)%>%
+  initial_split(., strata = "passed",prop = .75)
+bills_train <- training(bills_split) 
+bills_test <- testing(bills_split)
+```
+## c
+```{r}
+#creating the recipe
+bills_rec <- recipe(passed ~ description, data = bills_train) %>%
+  step_tokenize(description)%>%
+  step_stopwords(description) %>%
+  step_stem(description) %>%
+  step_tokenfilter(description, max_tokens = 200) %>% 
+  step_tfidf(description) 
+```
+
+## d
+```{r}
+#Listing words used for tf-idf
+bills_rec %>%
+  prep() %>% 
+  bake(new_data = NULL)
+```
+
+```{r}
+#updating recipe with new stopwords
+bills_rec <- recipe(passed ~ description, data = bills_train) %>%
+  step_tokenize(description)%>%
+  step_stopwords(description,stopword_source = "snowball", custom_stopword_source = c("1","2","2015","2016","3","4","act","administr","agenc","congress","court","feder","govern","institut","law","order","state","unit","us","year")) %>%
+  step_stem(description) %>%
+  step_tokenfilter(description, max_tokens = 200) %>% 
+  step_tfidf(description) 
+bills_rec %>%
+  prep() %>% 
+  bake(new_data = NULL)
+```
+## e
+```{r, message=FALSE,warning=FALSE}
+#creating model object, workflow object, and training the model 
+lasso_mod <- logistic_reg () %>% 
+  set_mode("classification") %>% 
+  set_engine("glm")
+lasso_wf <- workflow() %>% 
+  add_recipe(bills_rec) %>% 
+  add_model(lasso_mod)
+lasso_fit <- lasso_wf%>%
+  fit(data=bills_train)
+```
+
+## f
+```{r}
+#making predictions
+predictions <-bind_cols(
+  bills_test, 
+  predict(object = lasso_fit, new_data = bills_test),
+  predict(object = lasso_fit, new_data = bills_test,type="prob")
+  )
+
+accuracy(data = predictions,
+         truth = passed, 
+         estimate = .pred_class)
+precision(data = predictions,
+         truth = passed, 
+         estimate = .pred_class)
+recall(data = predictions,
+         truth = passed, 
+         estimate = .pred_class)
+autoplot(roc_curve(predictions,passed,.pred_1))
+```
+
+# Stretch
+
+##Part 1
+
+```{r stretch-1-1}
+vote <- read_csv("data/votes_time_series.csv")
+stretch_fun <- function(x){
+  #filter the votes data
+  sess <- vote %>%
+    replace(., is.na(.), 0) %>%
+    filter(session == x) %>%
+    select(starts_with("v"))
+  
+  #run PCA
+  sess_pca <- prcomp(sess) %>%
+    .$x %>%
+    as_tibble() %>%
+    select("PC1", "PC2")
+  
+  sess_combine_1 <- bind_cols(sess, sess_pca)
+  
+  #conduct kmeans cluster analysis
+  sess_clus <- kmeans(sess, centers = 4, nstart = 100)
+  sess_combine_2 <- bind_cols(sess_combine_1, cluster = sess_clus$cluster)
+  
+  return(sess_combine_2)
+}
+```
+
+```{r stretch 1-4}
+set.seed(20220413)
+map_votes <- map_df(103:114, stretch_fun) 
+map_votes
+```
+
+##Part 2
+
+```{r stretch 2-1}
+vote_original <- vote %>%
+  mutate_all(funs(ifelse(is.na(.), 0, .)))
+vote_pc <- vote_original %>%
+  select(starts_with("v")) %>%
+  prcomp() %>%
+  .$x %>%
+  as_tibble() %>%
+  select(PC1, PC2)
+vote_df <- bind_cols(vote_original, vote_pc)
+clus_plot <- vote_df %>%
+  ggplot(mapping = aes(x = PC1, y = PC2, color = state)) +
+  geom_point()+
+  transition_time(session) +
+  labs(title = 'Session: {frame_time}', x = 'PC1', y = 'PC2') +
+  ease_aes('linear')
+animate(clus_plot, duration = 10, fps = 20, width = 400, height = 400, renderer = gifski_renderer())
+anim_save("clust_gif.gif")
+```
+
+##Part 3
+
+```{r stretch 3-a & b}
+vote_113 <- vote %>%
+  filter(session == 113) %>%
+  select(starts_with("v"))
+
+set.seed(20220414)
+fviz_nbclust(vote_113,
+             FUN = hcut,
+             k.max = 10,
+             method = "wss",
+             hc_func = "hclust",
+             hc_method = "ward.D2",
+             hc_metric = "euclidean")
+
+set.seed(20220414)
+fviz_nbclust(vote_113,
+             FUN = hcut,
+             k.max = 10,
+             method = "silhouette",
+             hc_func = "hclust",
+             hc_method = "ward.D2",
+             hc_metric = "euclidean")
+```
+
+
+According to the results, it seems the optimal number of clusters based on both of the methods is 4.
+
+```{r stretch 3c}
+hclust_euc <- vote_113 %>%
+  scale() %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "ward.D2")
+plot(hclust_euc, cex = 0.6, hang = -1)
+rect.hclust(hclust_euc, k = 4, border = 2:5)
+```
+
+```{r stretch 3d}
+vote_113_assign <- cutree(hclust_euc, k = 4)
+vote_113_d <- bind_cols(vote_113, vote_113_assign)
+#this is the final data frame generated
+vote_113_d
+```
+

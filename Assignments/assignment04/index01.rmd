@@ -1,0 +1,103 @@
+---
+title: "PPOL 670 | Assignment 04 Data Visualization, Markdown, and Git"
+author: "Jinli Wu & Xiyu Zhang"
+date: "2/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+Access the data [here](https://www.cdc.gov/nchs/nhis/2019nhis.htm)
+
+# Set up
+```{r}
+library(ggplot2)
+library(haven)
+library(ipumsr)
+library(tidyverse)
+library(plotrix)
+```
+
+```{r}
+df <- read.csv("data/adult19.csv")
+ddi <- read_ipums_ddi("data/usa_00003.xml")
+df <- read_ipums_micro(ddi)
+```
+
+• Six different aesthetics (x, y, color, fill, shape, size);
+• Six different non-aesthetic options (i.e. set outside aes());
+• Five different geoms;
+• Two different scales (meaning change the default scale used for at least two aesthetics).
+
+#Distribution of years of immigrantion to the US
+```{r}
+df1<-df %>% 
+  filter(RACE==4)%>%
+  mutate(foreign=case_when(BPL<100 ~0,
+                           BPL>=100 ~1))
+df1$foreign <- factor(df1$foreign,levels=c(0,1),labels=c("Native born","Foreign born"))
+
+df1%>%
+  filter(RACE==4)%>%
+  mutate(foreign=1)%>%
+  ggplot()+
+  geom_histogram(aes(YRSUSA1))+
+  labs(title="Distribution of years of immigration to the US among foreign born Chinese Americans",x="Years moving to the US",y="Count",caption="Data source: IPUMS USA, University of Minnesota, www.ipums.org.")+
+  scale_y_continuous(limits=c(0,20000))
+```
+
+We can tell from the graph that among first-generation immigrants, the population of years of immigration to the US Chinese American is decreasing from 0 year to longer periods. We are interested in the correlation between years of immigration and the social economic status of the Chinese American, so that we would like to have a glance on the distribution of our population first.
+
+# Differences in socioeconomic status between native born and foreign born Chinese Americans
+
+```{r}
+df1%>%
+  mutate(Nativity=foreign)%>%
+  filter(HWSEI!=0000)%>%
+  group_by(Nativity)%>%
+  summarize(mean=mean(HWSEI),se=std.error(HWSEI))%>%
+  ggplot(aes(x=Nativity,y=mean,fill=Nativity))+
+  geom_col()+
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se))+
+  labs(title="Comparison of socioeconomic status between native born and foreign born \nChinese Americans",subtitle="-Hauser and Warren socioeconomic index",y="Socioeconomic index",caption="Data source: IPUMS USA, University of Minnesota, www.ipums.org.")+
+  scale_fill_hue()
+```
+
+We are trying to compare the socioeconomic status between native born and foreign born Chinese Americans. The logic behind is, if our assumption is that the longer the immigration stay in the US, the relatively lower socioeconomic status the person will be is true, then it may also be true that the native born Chinese American population will have a relatively lower socioeconomic. However, the graph shows the contrary result.
+
+# relationship between years moved to the US and socioeconomic status among foreign born Chinese Americans
+
+```{r}
+df1%>%
+  mutate(foreign=1)%>%
+  filter(HWSEI!=0000)%>%
+  filter(SEX==1|SEX==2)%>%
+  mutate(Gender = factor(SEX,levels=c(1,2),labels=c("Male","Female")))%>%
+  ggplot(aes(YRSUSA1,HWSEI))+
+  geom_point(aes(shape=Gender),position="jitter")+
+  geom_smooth(method='lm')+
+  labs(title="Scatter plot of years of immigrantion and socioeconomic status",x="years in the US",y="Socioeconomic index",caption="Data source: IPUMS USA, University of Minnesota, www.ipums.org.")
+```
+
+Finally, we are going to examine our assumption. We directly examine the relationship, spliting the population into male and female. However, the graph shows that there is no significant coeffcient on the independent variable.
+
+# relationship between food insecurity and mental health
+```{r}
+df3 <- read_csv("data/adult19.csv")
+df3 %>%
+  mutate(foodinsecurity = if_else(FDSCAT4_A ==8,NA_real_,FDSCAT4_A))%>%
+  mutate(GADCAT_A = if_else(GADCAT_A ==8,NA_real_,GADCAT_A))%>%
+  filter(SEX_A==1|SEX_A==2)%>%
+  mutate(Gender = factor(SEX_A,levels=c(1,2),labels=c("Male","Female")))%>%
+  ggplot(aes(foodinsecurity,GADCAT_A))+
+  geom_jitter(width=1,height=1, aes(color = Gender))+
+  geom_smooth(method='lm')+
+  facet_wrap(~Gender)+
+  labs(title="Scatter plot of anxiety symptoms and food insecurity",x="Severity of food insecurity in the US",y="Scores of anxiety symptoms",caption="Data source: IPUMS USA, University of Minnesota, www.ipums.org.")+
+  scale_color_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+This is another policy interest of us. We used another data set to examine the relationship between food insecurity and mental health, spliting the sample into male and female. Although the endogeneity inside our model might be severe, we got the statistically significant result that the more food insecurity people experienced, the lower level of mental health will people have.
+

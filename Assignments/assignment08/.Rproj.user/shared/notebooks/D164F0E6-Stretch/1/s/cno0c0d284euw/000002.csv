@@ -1,0 +1,20 @@
+"0","vote <- read_csv(""votes_time_series.csv"")"
+"1","[1mRows: [22m[34m1198[39m [1mColumns: [22m[34m711[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m   (3): name, party, state
+[32mdbl[39m (708): v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19,...
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","aa <- vote %>%"
+"0","    replace(., is.na(.), 0) %>%"
+"0","    filter(session == 103) %>%"
+"0","  select(starts_with(""v""))"
+"0","aa_pca <- prcomp(aa) %>%"
+"0","  .$x %>% #don't understand"
+"0","  as_tibble()"
+"0","aa_pca"

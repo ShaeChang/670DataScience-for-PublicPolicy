@@ -1,0 +1,22 @@
+"0","#split the data"
+"0","restaurant <- read_csv(""restaurant_grades.csv"")"
+"1","[1mRows: [22m[34m42876[39m [1mColumns: [22m[34m17[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (9): boro, cuisine_description, action, violation_code, violation_description, grade, i...
+[32mdbl[39m  (7): zipcode, latitude, longitude, inspection_year, violations, vermin_types, critical_...
+[34mdate[39m (1): inspection_date
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","set.seed(20201020)"
+"0","restaurant_split <- initial_split(data = restaurant, prop = 0.80)"
+"0","restaurant_split_train <- training(x=restaurant_split)"
+"0","restaurant_split_test <- testing(x=restaurant_split)"
+"0",""
+"0","#create a recipe"
+"0","restaurant_rec <- recipe(grade ~ ., data = restaurant_split_train) %>%"
+"0","  themis::step_downsample(grade)"

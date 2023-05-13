@@ -1,0 +1,19 @@
+"0","set.seed(20220413)"
+"0","votes <- read_csv(""executive-orders.csv"")"
+"1","[1mRows: [22m[34m196537[39m [1mColumns: [22m[34m4[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m──────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m  (2): text, president
+[32mdbl[39m  (1): executive_order_number
+[34mdate[39m (1): signing_date
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","map_votes <- map2(.x = 103:114, .y = votes, .f = stretch_fun)"
+"2","Error: Mapped vectors must have consistent lengths:
+* `.x` has length 12
+* `.y` has length 4
+"

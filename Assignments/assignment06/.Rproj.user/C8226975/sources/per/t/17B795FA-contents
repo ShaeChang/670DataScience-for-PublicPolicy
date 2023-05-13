@@ -1,0 +1,316 @@
+---
+title: "Assignment06_XiyuZhang"
+author: "ShaeChang"
+date: "3/28/2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# library all packages needed
+```{r library packages}
+library(dplyr)
+library(rsample)
+library(parsnip)
+library(recipes)
+library(workflows)
+library(tune)
+library(yardstick)
+library(readr)
+library(ggplot2)
+library(purrr)
+library(rpart)
+```
+
+
+# Exercise 01
+```{r Exercise 01}
+#To calculate MSE, RMSE, MAE by hand and display the work
+knitr::include_graphics("data/Exercise01.png")
+```
+
+As it shows, MSE = 4.4, RMSE = 2.10 (approximately), MAE = 1.6.
+RMSE, whose value is larger than MAE, intensified the effect of outliers by taking the square of each difference, while MAE only calculate each absolute value equally. 
+
+# Exercise 02
+```{r Exercise 02}
+#Using the above data, calculate the following “by hand” and show your work.
+knitr::include_graphics("data/confusionmatrix.png")
+knitr::include_graphics("data/accuracyprecisionrecall.png")
+```
+The value of accuracy, precision and recall/sensitivity is shown as above.
+
+# Exercise 03
+```{r Exercise 03}
+#using the data, calculate the following “by hand” and show your work
+knitr::include_graphics("data/exercise03.png")
+```
+
+The value of accuracy, misclassification rate is shown as above.
+
+# Exercise 04
+```{r Exercise 04}
+#to draw the confusion matrix, assume that there are in all 100 observations in the population.
+#for the first circumstance, if simply guessing the same value for all observations, then
+knitr::include_graphics("data/guessing4_1.png")
+#the accuracy should be 0.51, shown as below:
+knitr::include_graphics("data/accuracy4_1.png")
+#same logic, for the second circumstance. The accuracy, in this case, should be 0.99, shown as below.
+knitr::include_graphics("data/accuracy4_2.png")
+```
+
+To summarize, for one same supervised machine learning model, (in this case, directly calculate one value and guessing it for all observations), the accuracy could vary significantly just because the structure of the data of the observation is different. In this case, it varies from 0.51 to 0.99, and that is a big different. So consider context while evaluating accuracy in different supervised machine learning tasks is important.
+
+# Exercise 05
+```{r Exercise 05}
+#1. read the marbles data set, and divide it into a training set and a testing set.
+marblesdata <- read_csv("data/marbles.csv")
+set.seed(20200229)
+data_divide <- initial_split(data = marblesdata, prop = 0.80)
+marble_train <- training(x = data_divide)
+marble_test <- testing(x = data_divide)
+#2. develop an intuitive model for predicting black marbles
+#visualize the data
+marble_train %>%
+  ggplot(aes(x = size, y = color)) +
+  geom_jitter(width = 0.1, height = 0.1, alpha = 0.5) +
+  labs(title = "Traning Data for Marbles Data Set") +
+  theme_minimal()
+```
+
+# Stretch Part 01
+```{r Stretch Part01}
+set.seed(20200302)
+# input the data
+rats <- tribble(~rat_burrow, ~pizza_proximity,
+  1, 0.01,
+  1, 0.05,
+  1, 0.08,
+  0, 0.1,
+  0, 0.12,
+  1, 0.2,
+  1, 0.3,
+  1, 0.5,
+  1, 0.75,
+  0, 0.9,
+  1, 1,
+  0, 1.2,
+  0, 2.2,
+  0, 2.3,
+  0, 2.5,
+  1, 3,
+  0, 3.5,
+  0, 4,
+  0, 5,
+  0, 7
+) %>%
+ mutate(rat_burrow = factor(rat_burrow))
+
+# split into training and testing data
+split <- initial_split(rats, prop = 0.75)
+rats_training <- training(split)
+rats_testing <- testing(split)
+rats_k1 <- vfold_cv(data = rats_training,
+                    v = 3)
+rats_k3 <- vfold_cv(data = rats_training,
+                    v = 3)
+rats_kn <- vfold_cv(data = rats_training,
+                    v = 3)
+#Extract the analysis data and assessment data from the first resample in rats_k1, rats_k3, and rats_kn.
+analysis_k1 <- rats_k1$splits[[1]] %>% analysis()
+assess_k1 <- rats_k1$splits[[1]] %>% assessment()
+analysis_k3 <- rats_k3$splits[[1]] %>% analysis()
+assess_k3 <- rats_k3$splits[[1]] %>% assessment()
+analysis_kn <- rats_kn$splits[[1]] %>% analysis()
+assess_kn <- rats_kn$splits[[1]] %>% assessment()
+#calculate y_hat for each assessment data
+#for k = 1
+# (1) create a knn model specification
+knn_mod_k1 <-
+  nearest_neighbor(neighbors = 1) %>%
+  set_engine(engine = "kknn") %>%
+  set_mode(mode = "classification")
+# (2) fit the knn model specification on the training data
+knn_fit_k1 <- knn_mod_k1 %>%
+  fit(formula = rat_burrow ~ pizza_proximity, data = analysis_k1)
+# (3) use the estimated model to predict values in the testing data
+prediction_k1 <-
+  bind_cols(assess_k1,
+    predict(object = knn_fit_k1, new_data = assess_k1)
+  )
+#for k = 3
+# (1) create a knn model specification
+knn_mod_k3 <-
+  nearest_neighbor(neighbors = 3) %>%
+  set_engine(engine = "kknn") %>%
+  set_mode(mode = "classification")
+# (2) fit the knn model specification on the training data
+knn_fit_k3 <- knn_mod_k3 %>%
+  fit(formula =  rat_burrow ~ pizza_proximity, data = analysis_k3)
+# (3) use the estimated model to predict values in the testing data
+prediction_k3 <-
+  bind_cols(assess_k3,
+    predict(object = knn_fit_k3, new_data = assess_k3)
+  )
+#for k = n, let n = 5 because we have 5 observations in total in our assessment data set
+# (1) create a knn model specification
+knn_mod_kn <-
+  nearest_neighbor(neighbors = 5) %>%
+  set_engine(engine = "kknn") %>%
+  set_mode(mode = "classification")
+# (2) fit the knn model specification on the training data
+knn_fit_kn <- knn_mod_kn %>%
+  fit(formula = rat_burrow ~ pizza_proximity, data = analysis_kn)
+# (3) use the estimated model to predict values in the testing data
+prediction_kn <-
+  bind_cols(assess_kn,
+    predict(object = knn_fit_kn, new_data = assess_kn)
+  )
+# Include the data frame in your R Markdown document
+knitr::kable(prediction_k1)
+knitr::kable(prediction_k3)
+knitr::kable(prediction_kn)
+
+#calculate the accuracy and confusion matrix by hand
+knitr::include_graphics("data/stretch01.png")
+# To conclude, from the result we can see, the third model (k = n) results in the highest accuracy in this case. Also, considering the workload, the first model should be the easiest one and the thrid model should be the toughest one, because you could only take a look at the one nearest value in the treatment data set and come to the conclusion in the first model, but should calculate the all n values in the treatment data set and come up with the distance, and eventually decide rather there exists rat burrow or not, that makes the work tough in the third model.
+```
+
+To summerize, the rmsen is the smallest (2.07) among all rmse calculated (others are 4.90 and 2.60, respectively), so it seems the last model fit the true values best. Computationally, the first model is the easiest one and the third model is the toughtest, considering the first only need to look up one value to predict and the third one need to look up 5. Note: it seems impossible to calculate the accuracy and the confusion matrix since the result using regression here is numeric but not Boolean. So instead of using the accuracy to estimate the goodness of the model, RMSE is calculated to value the model.
+
+# Stretch Part 02
+```{r Stretch Part02}
+
+# write a function for gini index
+calc_gini_2 <- function(left, right) {
+  
+  # calculate the gini index for each node
+  gini_left <- 1 - (sum(left==1)/length(left))^2 - (sum(left==0)/length(left))^2
+  gini_right <- 1 - (sum(right==1)/length(right))^2 - (sum(right==0)/length(right))^2
+  
+  # calculate the overall gini index
+  #1. define S
+  S <- length(left) + length(right)
+  #2. calculate the gini_combined
+  gini_combined <- ((length(left)/S)*gini_left) + ((length(right)/S)*gini_right)
+  
+  # return
+  return(
+    list(
+      gini_left = gini_left,
+      gini_right = gini_right,
+      gini_combined = gini_combined
+    )
+  )
+}
+
+#test the function
+  #1.
+  calc_gini_2(left = c(0, 0, 0), right = c(1, 1, 1))
+  #2.
+  calc_gini_2(left = c(0, 0, 1, 1), right = c(0, 0, 1, 1))
+  #3.
+  dt_analysis <- analysis(rats_k1$splits[[3]]) %>%
+    arrange(pizza_proximity)
+  calc_gini_2(left = dt_analysis$rat_burrow[1:5], right = dt_analysis$rat_burrow[6:10])
+
+#Evaluate all of the non-empty splits to decide the node
+  map_dbl(
+  .x = 1:9,
+  .f = ~calc_gini_2(
+    left = dt_analysis$rat_burrow[1:.x],
+    right = dt_analysis$rat_burrow[(.x + 1):10]
+  )$gini_combined
+)
+  #among all of the 9 possible gini index of the 9 nodes chosen, observed that the fourth gini index is the smallest one (0.1500000), and x = 4 then.
+  #check the 4th value of pizza_proximity
+  (dt_analysis$pizza_proximity)[[4]]
+  
+#Thus, pizza_proximity = 0.3 is a good value to split on for a decision tree based on this small analysis data set.
+```
+
+
+# Stretch Part 03
+```{r Stretch Part03}
+
+#write a new function calculating the gini index for splits in a decision tree model for multi-class classification.
+calc_gini_k <- function(left, right) {
+  
+  #calculate gini index for each split
+   #1. left
+  left_prep <- prop.table(table(left)) %>% #an intermediate variable help calculate gini_left
+  as_tibble() %>%
+  pull()
+  gini_left <- 1 - sum((left_prep)^2)
+    #2. right
+  right_prep<- prop.table(table(right)) %>% #an intermediate variable help calculate gini_right
+  as_tibble() %>%
+  pull()
+  gini_right <- 1 - sum((right_prep)^2)
+  
+  #calculate the overall gini index
+    #1. define S
+  S <- length(left) + length(right)
+    #2. calculate the gini_combined
+  gini_combined <- ((length(left)/S)*gini_left) + ((length(right)/S)*gini_right)
+  
+  # return
+  return(
+    list(
+      gini_left = gini_left,
+      gini_right = gini_right,
+      gini_combined = gini_combined
+    )
+  )
+  
+}
+
+#test the function
+calc_gini_k(left = c(0, 0, 0), right = c(1, 1, 1))
+calc_gini_k(left = c(0, 0, 1, 1), right = c(0, 0, 1, 1))
+calc_gini_k(left = dt_analysis$rat_burrow[1:5], right = dt_analysis$rat_burrow[6:10])
+
+#generate the data set
+set.seed(20220318)
+data <- tibble(
+  x1 = runif(100, min = 0, max = 1),
+  x2 = runif(100, min = 0, max = 1),
+  x1_prob = runif(100, min = 0, max = 1),
+  x2_prob = runif(100, min = 0, max = 1)
+) %>%
+  mutate(
+    y = case_when(
+    x1_prob > x1 & x2_prob > x2 ~ "a",
+    x1_prob < x1 & x2_prob > x2 ~ "b",
+    x1_prob > x1 & x2_prob < x2 ~ "c",
+    x1_prob < x1 & x2_prob < x2 ~ "d",
+    )
+) %>%
+  mutate(y = factor(y)) %>%
+  select(x1, y)
+
+#Evaluate all of the non-empty splits to decide the node
+  #1. the vector of all gini_combined for each node
+gini_combined <- map_dbl(
+  .x = 1:99,
+  .f = ~calc_gini_k(
+    left = data$y[1:.x],
+    right = data$y[(.x + 1):100]
+  )$gini_combined
+) 
+#this it the vector of all gini_combined for each node.
+
+  #2. to find the minimum gini_combined and the corresponding order of it
+gini_combined %>%
+  as_tibble() %>%
+  mutate(order = 1:99) %>%
+  arrange(value) %>%
+  glimpse()
+#find the corresponding predictor for our best split node
+data$x1[11]
+#So, the optimal choice of the split node is to split the data set after x1 = 0.5276528, the 11th observation we have.
+```

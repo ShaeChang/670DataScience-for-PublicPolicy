@@ -1,0 +1,16 @@
+"0","#reading in data"
+"0","bills <- read_csv(""senate_bills_114.csv"") %>% "
+"0","  mutate(passed = factor(passed, labels = c(""1"", ""0""), levels = c(""1"", ""0"")))"
+"1","[1mRows: [22m[34m3548[39m [1mColumns: [22m[34m3[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m───────────────────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m (2): bill_number, description
+[32mdbl[39m (1): passed
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","bills%>%"
+"0","  count(passed)"

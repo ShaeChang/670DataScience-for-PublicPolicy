@@ -1,0 +1,11 @@
+"0","collect_metrics(knn_rs, summarize = FALSE) %>%"
+"0","  filter(.metric == ""rmse"") %>% "
+"0","  ggplot(aes(id, .estimate, group = .estimator)) + "
+"0","  geom_line() + "
+"0","  geom_point() + "
+"0","  scale_y_continuous(limits = c(0, 3)) + "
+"0","  labs(title = ""Calculated RMSE Across the 10 Folds"", y = ""RMSE_hat"") +"
+"0","  theme_minimal()"
+"2","Warning:"
+"2"," Removed 3 rows containing missing values (geom_point).
+"

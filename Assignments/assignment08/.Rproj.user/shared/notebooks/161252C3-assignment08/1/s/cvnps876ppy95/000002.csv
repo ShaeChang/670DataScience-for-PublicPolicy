@@ -1,0 +1,7 @@
+"0","#creating training and testing data"
+"0","set.seed(20220414)"
+"0","bills_split <- bills%>%"
+"0","  select(!bill_number)%>%"
+"0","  initial_split(., strata = ""passed"",prop = .75)"
+"0","bills_train <- training(bills_split) "
+"0","bills_test <- testing(bills_split)"

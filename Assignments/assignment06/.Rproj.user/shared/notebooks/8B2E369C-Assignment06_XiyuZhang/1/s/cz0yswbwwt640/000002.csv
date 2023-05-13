@@ -1,0 +1,5 @@
+"0","#To calculate MSE, RMSE, MAE by hand and display the work"
+"0","knitr::include_graphics(""Exercise01.png"")"
+"2","Error in knitr::include_graphics(""Exercise01.png"") : 
+  Cannot find the file(s): ""Exercise01.png""
+"

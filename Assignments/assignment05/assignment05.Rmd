@@ -1,0 +1,174 @@
+---
+title: "assignment05"
+author: "Jinli Wu & ShaeChang"
+date: "3/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(readr)
+library(lubridate)
+library(dplyr)
+library(sf)
+library(ggplot2)
+library(tigris)
+library(patchwork)
+library(tidycensus)
+library(httr) 
+library(jsonlite)
+```
+# 1.Data Loading & Cleaning 
+
+```{r #1}
+#it seems "read_csv" is better than "read.csv", but I still don't know why.
+crime <- read_csv("data/crimes-reduced.csv",
+                  col_types = cols(
+                    Longitude = col_character(), 
+                    Latitude = col_character()
+                    )
+                  ) %>%
+  #to use another syntax seems easier, but we are asked to use "rename".
+  rename(id = ID,
+         date = Date,
+         primary_type = `Primary Type`,
+         arrest = Arrest,
+         x_coordinate = `X Coordinate`,
+         y_coordinate = `Y Coordinate`,
+         community_area = `Community Area`,
+         latitude = Latitude,
+         longitude = Longitude,
+         location = Location
+         )
+glimpse(crime)
+```
+
+# 2. Filtering the data to homicides within ten years of today
+
+```{r #2}
+crime_lim <- crime %>%
+  #select crimes we are interested in
+  filter(primary_type == "HOMICIDE") %>%
+  filter(!is.na(latitude) | !is.na(longitude)) %>%
+  mutate(
+    datetime = mdy_hms(date),
+    #change the unit of the duration of the time to seconds, to make the comparision later easier
+    periodtime = as.duration(now() - datetime)
+    ) %>%
+  #filter by comparing the periodtime is longer than 10 years or not. Use "dyears" to measure the duriation also in seconds
+  filter(periodtime < dyears(10))
+table(
+  year(crime_lim$datetime)
+)
+min(crime_lim$datetime)
+```
+
+# 3. Convert Lon/Lat to Points Geometry
+
+```{r #3}
+crime_limsf <- crime_lim %>%
+  st_as_sf(coords = c("longitude", "latitude")) %>%
+  st_set_crs(value = 4326) 
+
+p0 <- ggplot() +
+  #use "alpha" to adjust the transparency of the points
+  geom_sf(data = crime_limsf, mapping = aes(color = arrest, alpha=0.1)) +
+  #also, make point size a bit smaller
+  geom_point(size = 0.05)
+
+p0
+
+```
+
+# 4. Load Census Tracts, Perform a Spatial Join, and Create Choropleth.
+
+```{r #4}
+#read the shapefile data from .shp file downloaded
+shapefile <- st_read("data/geo_export_bd405ca0-25a8-45be-9e7d-2940f7aa38f7.shp") %>%
+  st_transform(4326) %>%
+  select(geoid10, geometry)
+
+#perform a spatial join, and calculate the count of homicides and the percent of arrests per homicide 
+chicago = st_join(shapefile, crime_limsf)
+chicago_merged_agg <- chicago%>%
+  as_tibble() %>% #converting from sf to tibble
+  group_by(primary_type)%>%
+  group_by(geoid10)%>%
+  summarise(count = n(), percent = mean(c(arrest==TRUE, TRUE, FALSE))) 
+
+#make the tibble join a dataset with geometry
+crimemap <- left_join(chicago, chicago_merged_agg, by = "geoid10")
+
+#come out the pictures with "patchwork"
+p1 <- crimemap %>%
+  ggplot() +
+  geom_sf(aes(fill = count)) +
+  scale_fill_gradient(
+    low = "#cfe8f3", 
+    high = "#062635"
+  ) +
+  theme_void() 
+
+p2 <- crimemap %>%
+  ggplot() +
+  geom_sf(aes(fill = percent)) +
+  scale_fill_gradient(
+    low = "#cfe8f3", 
+    high = "#062635"
+  ) +
+  theme_void() 
+
+p1 + p2
+```
+
+# 5. Using the Census API
+```{r}
+census_api_key("1e026494f18fa3670e23056404c7609edfaf87bc",overwrite=TRUE)
+```
+
+```{r}
+variables<- load_variables(2017, "acs5", cache = TRUE)
+```
+Use the filter option to locate the variables for median household income (B19013_001), population with a bachelor’s degree (B15003_001), and population below the poverty line (B17001_001).
+
+```{r}
+q5 <- get_acs(geography = "tract", 
+                       variables = c("B19013_001", "B15003_001", "B17001_001"), 
+                       year = 2017,
+              state=17,
+              county=031,
+              output = "wide")
+```
+```{r}
+url <- "https://api.census.gov/data/2017/acs/acs5?get=B19013_001E,B15003_001E,B17001_001E&for=tract:*&in=state:17&in=county:031"
+pop_json <- GET(url = url)
+pop_json <- content(pop_json, as = "text")
+pop_matrix <- fromJSON(pop_json)
+pop_data <- as_tibble(pop_matrix[2:nrow(pop_matrix), ], .name_repair = "minimal")
+names(pop_data) <- pop_matrix[1, ]
+```
+
+```{r}
+comparison1 <- q5%>%
+  tidyr::separate(
+    col=GEOID,
+    sep=c(2,5),
+    into=c("state","county","tract"),
+    remove = FALSE)%>%
+  select(state,county,tract,B19013_001E,B15003_001E,B17001_001E)
+
+comparison2 <-pop_data%>%
+  mutate(B19013_001E=as.numeric(B19013_001E),B15003_001E=as.numeric(B15003_001E),B17001_001E=as.numeric(B17001_001E))%>%
+  mutate(B19013_001E = ifelse(B19013_001E<0,NA,B19013_001E))
+
+dplyr::all_equal(comparison1,
+                 comparison2,
+                 ignore_col_order = TRUE,
+                 ignore_row_order = TRUE)
+```
+

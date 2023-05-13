@@ -1,0 +1,7 @@
+"0","#evaluate the model"
+"0",""
+"0","predictions <- bind_cols("
+"0","  restaurant_split_test,"
+"0","  predict(object = cart_fit, new_data = restaurant_split_test)"
+"0",")"
+"0","select(predictions, grade, starts_with("".pred_class""))"

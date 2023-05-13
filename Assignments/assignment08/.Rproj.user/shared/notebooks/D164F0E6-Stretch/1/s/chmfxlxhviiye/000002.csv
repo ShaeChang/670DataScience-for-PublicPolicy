@@ -1,0 +1,5 @@
+"0","hclust_euc <- vote_113 %>%"
+"0","  scale() %>%"
+"0","  dist(method = ""euclidean"") %>%"
+"0","  hclust(method = ""ward.D2"")"
+"0","plot(hclust_euc, cex = 0.6, hang = -1)"

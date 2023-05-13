@@ -1,0 +1,1 @@
+{"frames":[{"func":"map2(.x = 103:114, .y = votes, .f = stretch_fun)","file":"","line_number":0,"end_line_number":0,"character_number":0,"end_character_number":0}],"message":"Error: Mapped vectors must have consistent lengths:\n* `.x` has length 12\n* `.y` has length 4\n"}

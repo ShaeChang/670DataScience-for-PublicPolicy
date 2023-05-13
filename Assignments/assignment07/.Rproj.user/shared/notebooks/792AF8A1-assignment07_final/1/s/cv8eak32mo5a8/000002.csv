@@ -1,0 +1,5 @@
+"0","#set up a testing environment"
+"0","set.seed(20211101)"
+"0","chicago_split <- initial_split(data = Chicago_modeling)"
+"0","chicago_train <- training(x = chicago_split)"
+"0","chicago_test <- testing(x = chicago_split)"

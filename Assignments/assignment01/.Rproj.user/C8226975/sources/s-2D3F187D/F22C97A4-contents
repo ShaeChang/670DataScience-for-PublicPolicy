@@ -1,0 +1,4 @@
+
+xiaoyu <- -10:1
+sqrt( xiaoyu ^ 2 )
+xiaoyu

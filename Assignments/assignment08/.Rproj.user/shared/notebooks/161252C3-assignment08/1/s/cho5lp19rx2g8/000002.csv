@@ -1,0 +1,3 @@
+"0","votes_numeric <- votes_103 %>%"
+"0","  select(starts_with(""v""))"
+"0","votes_pca <- prcomp(votes_numeric)"

@@ -1,0 +1,4 @@
+"0","#read the marbles data set, and divide it into a training set and a testing set."
+"0","marblesdata <- read_csv(""marbles.csv"")"
+"2","Error in read_csv(""marbles.csv"") : could not find function ""read_csv""
+"

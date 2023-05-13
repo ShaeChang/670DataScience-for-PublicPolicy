@@ -1,0 +1,2 @@
+"0","#set up v-fold cross-validation with 10 folds"
+"0","chi_fold <- vfold_cv(data = chi_modeling_train, v = 10)"

@@ -1,0 +1,45 @@
+"0","library(dplyr)"
+"2","
+Attaching package: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"
+"0","library(rsample)"
+"0","library(parsnip)"
+"0","library(recipes)"
+"2","
+Attaching package: ‘recipes’
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    step
+
+"
+"0","library(workflows)"
+"0","library(tune)"
+"0","library(yardstick)"
+"2","For binary classification, the first factor level is assumed to be the event.
+Use the argument `event_level = ""second""` to alter this as needed.
+"
+"0","library(readr)"
+"2","
+Attaching package: ‘readr’
+
+"
+"2","The following object is masked from ‘package:yardstick’:
+
+    spec
+
+"
+"0","library(ggplot2)"
+"0","library(purrr)"

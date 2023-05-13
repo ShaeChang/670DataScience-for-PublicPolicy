@@ -1,0 +1,6 @@
+"0","chicago_rec <- recipe(formula = ridership ~ ., data= chicago_train) %>%"
+"0","  step_holiday(date, keep_original_cols = FALSE) %>%"
+"0","  step_scale(all_numeric_predictors()) %>%"
+"0","  step_center(all_numeric_predictors()) %>%"
+"0","  step_unorder(month, weekday) %>%"
+"0","  step_dummy(month, weekday)"

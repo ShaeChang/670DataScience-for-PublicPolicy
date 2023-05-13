@@ -1,0 +1,4 @@
+"0","#within sum of squares and silhouette distance suggest 2 clusters, while gap statistic suggests 4"
+"0","plot1 <- clusterfun(2,votes_numeric)"
+"0","plot2 <- clusterfun(4,votes_numeric)"
+"0","plot1+plot2"

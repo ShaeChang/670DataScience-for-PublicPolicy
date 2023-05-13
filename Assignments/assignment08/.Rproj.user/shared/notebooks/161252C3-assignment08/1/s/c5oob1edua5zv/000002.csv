@@ -1,0 +1,6 @@
+"0","tf_idf <- eosa %>%"
+"0","  separate(., bigram, into = c(""first"", ""second""), sep = ""\\s"",remove = FALSE)%>%"
+"0","  anti_join(stopfirstsecond, by = ""first"") %>%"
+"0","  anti_join(stopfirstsecond, by = ""second"") %>%"
+"0","  count(bigram, president, sort = TRUE)%>%"
+"0","  bind_tf_idf(term = bigram, document = president, n = n)"

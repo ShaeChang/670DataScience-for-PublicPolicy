@@ -1,0 +1,59 @@
+"0","# use this url to download the data directly into R"
+"0","df <- read_csv(""https://data.cityofnewyork.us/api/views/43nn-pn8j/rows.csv"")"
+"2","Warning:"
+"2"," One or more parsing issues, see `problems()` for details
+"
+"1","[1mRows: [22m[34m317083[39m [1mColumns: [22m[34m26[39m
+"
+"1","[36m──[39m [1mColumn specification[22m [36m────────────────────────────────────────────────────────────────────────[39m
+[1mDelimiter:[22m "",""
+[31mchr[39m (18): DBA, BORO, BUILDING, STREET, PHONE, CUISINE DESCRIPTION, INSPECTION DATE, ACTION, ...
+[32mdbl[39m  (8): CAMIS, ZIPCODE, SCORE, Latitude, Longitude, Community Board, BIN, BBL
+"
+"1","
+[36mℹ[39m Use `spec()` to retrieve the full column specification for this data.
+[36mℹ[39m Specify the column types or set `show_col_types = FALSE` to quiet this message.
+"
+"0","# clean names with janitor"
+"0","sampled_df <- df %>%"
+"0","  janitor::clean_names()"
+"0","# create an inspection year variable"
+"0","sampled_df <- sampled_df %>%"
+"0","  mutate(inspection_date = mdy(inspection_date)) %>%"
+"0","  mutate(inspection_year = year(inspection_date))"
+"0","# get most-recent inspection"
+"0","sampled_df <- sampled_df %>%"
+"0","  group_by(camis) %>%"
+"0","  filter(inspection_date == max(inspection_date)) %>%"
+"0","  ungroup()"
+"0","# subset the data"
+"0","sampled_df <- sampled_df %>%"
+"0","  select(camis, boro, zipcode, cuisine_description, inspection_date,"
+"0","         action, violation_code, violation_description, grade,"
+"0","         inspection_type, latitude, longitude, council_district,"
+"0","         census_tract, inspection_year, critical_flag) %>%"
+"0","  filter(complete.cases(.)) %>%"
+"0","  filter(inspection_year >= 2017) %>%"
+"0","  filter(grade %in% c(""A"", ""B"", ""C""))"
+"0","# create the binary target variable"
+"0","sampled_df <- sampled_df %>%"
+"0","  mutate(grade = if_else(grade == ""A"", ""A"", ""Not A"")) %>%"
+"0","  mutate(grade = as.factor(grade))"
+"0","# create extra predictors"
+"0","sampled_df <- sampled_df %>%"
+"0","  group_by(boro, zipcode, cuisine_description, inspection_date,"
+"0","         action, violation_code, violation_description, grade,"
+"0","         inspection_type, latitude, longitude, council_district,"
+"0","         census_tract, inspection_year)  %>%"
+"0","  mutate(vermin = str_detect(violation_description, pattern = ""mice|rats|vermin|roaches"")) %>%"
+"0","  summarize(violations = n(),"
+"0","            vermin_types = sum(vermin),"
+"0","            critical_flags = sum(critical_flag == ""Y"")) %>%"
+"0","  ungroup()"
+"1","[38;5;232m`summarise()` has grouped output by 'boro', 'zipcode', 'cuisine_description',
+'inspection_date', 'action', 'violation_code', 'violation_description', 'grade',
+'inspection_type', 'latitude', 'longitude', 'council_district', 'census_tract'. You can
+override using the `.groups` argument.[39m
+"
+"0","# write the data"
+"0","write_csv(sampled_df, ""restaurant_grades.csv"")"

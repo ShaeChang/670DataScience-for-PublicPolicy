@@ -1,0 +1,6 @@
+"0","#set up the data"
+"0","Chicago_modeling <- Chicago %>%"
+"0","  slice(1:5678)"
+"0","Chicago_implementation <- Chicago %>%"
+"0","  slice(5679:5698) %>%"
+"0","  select(-ridership)"

@@ -1,0 +1,22 @@
+"0","set.seed(20201020)"
+"0","df_split <- initial_split(data=sampled_df,prop=0.8)"
+"0","df_train <- training(df_split)"
+"0","df_test <- testing(df_split)"
+"0","cart_rec <- recipe(formula = grade ~ ., data = df_train)%>%"
+"0","  themis::step_downsample(grade)"
+"0","cart_mod <-"
+"0","  decision_tree()%>%"
+"0","  set_engine(engine = ""rpart"")%>%"
+"0","  set_mode(mode = ""classification"")"
+"0","cart_wf <- workflow() %>% "
+"0","  add_recipe(cart_rec) %>%"
+"0","  add_model(cart_mod)"
+"0","cart_fit <- cart_wf %>% "
+"0","  fit(data = df_train)"
+"0","rpart.plot::rpart.plot(x = cart_fit$fit$fit$fit)"
+"2","Warning:"
+"2"," Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.plot with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.
+"

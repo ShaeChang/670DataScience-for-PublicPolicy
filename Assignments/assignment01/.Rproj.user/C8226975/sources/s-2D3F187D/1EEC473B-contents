@@ -1,0 +1,17 @@
+
+x <- 1:12
+sample(x)
+sample(x, replace = FALSE)
+length(x)
+?size
+??size
+?sample
+
+sample(x)
+sample(x, size = 11, replace = TRUE)
+length(x)
+sum(rivers)
+rivers
+?rivers
+141*500
+ave(rivers)

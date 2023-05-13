@@ -1,0 +1,286 @@
+---
+title: "Data Science for Public Policy"
+author: "Xiyu Zhang - xz551"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+```
+
+```{r include = FALSE}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+```
+
+\begin{center}
+\Huge{PPOL 670 | Assignment 3}
+
+\Huge{Applied Introduction to R's Tidyverse}
+\end{center}
+
+\vspace{0.1in}
+
+```{r}
+library(tidyverse)
+library(ipumsr)
+library(srvyr)
+library(haven)
+
+```
+
+
+# Exercise 01 (1 point)
+
+```{r}
+library(ipumsr)
+library(tidyverse)
+ddi <- read_ipums_ddi("cps_00002.xml")
+data <- read_ipums_micro(ddi)
+glimpse(data)
+```
+
+
+\newpage
+
+# Exercise 02 (2 points)
+#2.
+```{r}
+library(srvyr)
+cps_svy <- as_survey_design(data, weights = WTFINL)
+class(data)
+class(cps_svy)
+
+```
+#3. The difference is that, the as_survey_design function turn the tibble into a "tbl_svy", object, and create two new catagories called "survey.design" & "survey.design2"
+
+#4. Yes, there is a value of NIU: 
+#for UHRSWORKT, 1999-onward ASEC:0 = No hours; 997 = Hours vary; 999 = Not in universe (NIU)
+#for AHRSWORKT, 999 = NIU (Not in universe)
+
+```{r}
+NIU.UHR.AHR <- data %>%
+  group_by(YEAR, UHRSWORKT, AHRSWORKT) %>%
+  summarise(
+    unweighted = n()
+  ) %>%
+  filter(UHRSWORKT == 999 | AHRSWORKT == 999) %>%
+  arrange(YEAR, desc(UHRSWORKT))
+NIU.UHR.AHR
+```
+
+#observed that for all observations in 2020 and 2021, while UHRSWORKT == 999, then AHRSWORKT is inevitabily 999, that means to sum up the observations that are not in the universe in these two years, we could only group_by the AHRSWORKT variable. Rewrite our code:
+
+```{r}
+NIU.UHR.AHR <- data %>%
+  group_by(YEAR, AHRSWORKT) %>%
+  summarise(
+    unweighted = n()
+  ) %>%
+  filter(AHRSWORKT == 999) %>%
+  arrange(YEAR, desc(AHRSWORKT))
+NIU.UHR.AHR
+```
+
+#Thus, in 2020, there were 63321 observations that are not in the universe for  UHRSWORKT and AHRSWORKT; in 2021, there were 61703 of them.
+
+#5.Filter out observations not in the universe for UHRSWORKT and create a new data frame called cps_subset_svy with the assignment operator.
+
+```{r}
+cps_subset_svy <- data %>%
+  filter(UHRSWORKT != 999)
+cps_subset_svy
+```
+
+#6.Count the number of unweighted responses for each value for UHRSWORKT.
+```{r}
+cps_subset_6 <- cps_subset_svy %>%
+  group_by(UHRSWORKT) %>%
+  filter(UHRSWORKT != 997) %>%
+  summarize (
+    unweighted = n()
+  ) 
+ggplot(data = cps_subset_6) + 
+  geom_col(mapping = aes(x = UHRSWORKT, y = unweighted))
+```
+
+#7.Calculate the mean usual hours worked (UHRSWORKT) in 2020 and 2021. Exclude workers with "Hours vary".
+```{r}
+cps_subset_7 <- cps_subset_svy %>%
+  group_by(YEAR) %>%
+  filter(UHRSWORKT != 997) %>%
+  summarise(mean_UHRSWORKT = mean(UHRSWORKT))
+cps_subset_7
+```
+
+#8.Calculate the proportion of workers who usually worked exactly 40 hours in 2021.
+```{r}
+cps_subset_8 <- cps_subset_svy %>%
+  filter(YEAR == 2021) %>%
+  mutate(
+    HOURS_40 = if_else(condition = UHRSWORKT == 40, true = 1, false = 0)
+    ) %>%
+  group_by(YEAR) %>%
+  summarise(proportion_40 = mean(HOURS_40))
+cps_subset_8
+```
+
+#9.Calculate the proportion of workers who worked less, the same, and more than usual in April 2020 and April 2021 (separately) by comparing UHRSWORKT and AHRSWORKT.
+```{r}
+cps_subset_91 <- cps_subset_svy %>%
+  filter(UHRSWORKT != 997) %>%
+  select(YEAR, UHRSWORKT, AHRSWORKT) %>%
+  mutate(
+    AprilWork = case_when(
+      AHRSWORKT > UHRSWORKT ~ "work more",
+      AHRSWORKT < UHRSWORKT ~ "work less",
+      TRUE ~ "work the same"
+    )
+  ) 
+cps_subset_92 <- as_survey_design(cps_subset_91) %>%
+  group_by(YEAR, AprilWork) %>%
+  summarise(prop = survey_prop())
+cps_subset_92
+```
+\newpage
+
+# Exercise 03 (2 points)
+#2. Using cps_svy, calculate the weighted count of observations ages 16 or older for each year with survey_count(). Your results should match the April 2020 and April 2021 values to the closest thousand because of rounding.
+#Sorry I don't have any idea about "survey_count", it seems not appear when I was trying to search it. I also don't know how to put the age >= 16 into weight.
+
+#3. Create three numeric indicator variables.
+```{r}
+cps_svy_33 <- cps_svy %>%
+  mutate(
+    labor_force = case_when(
+      LABFORCE == 2 ~ 1,
+      LABFORCE == 1 ~ 0,
+      TRUE ~ 999
+    )
+  ) %>%
+  mutate(
+    employed = case_when(
+      EMPSTAT == 10 | EMPSTAT == 12 ~ 1,
+      EMPSTAT == 20 | EMPSTAT == 21 | EMPSTAT == 22 ~ 0,
+      TRUE ~ 999
+    )
+  ) %>%
+  mutate(
+    unemployed = case_when(
+      EMPSTAT == 10 | EMPSTAT == 12 ~ 0,
+      EMPSTAT == 20 | EMPSTAT == 21 | EMPSTAT == 22 ~ 1,
+      TRUE ~ 999
+    )
+  )
+```
+
+#4.Filter to the civilian population ages 16 or older, and calculate the relavant population.
+```{r}
+cps_svy_34 <- cps_svy_33 %>%
+  filter(AGE >= 16) %>%
+  filter(POPSTAT == 1) %>%
+  summarise(
+    LABFOR_cal = survey_total(labor_force == 1),
+    EMPLOY_cal = survey_total(employed == 1),
+    UNEMPLOY_cal = survey_total(unemployed == 1)
+            )
+cps_svy_34
+```
+
+#5. Compare the result with microdata to the official tabulation for April 2021.
+#The official data is: civilian labor force - 160,379,000; employed - 151,160,000; unemployed - 9,220,000.
+#What I got here are (shown above): civilian labor force - 316,601,435; employed - 284,601,546; unemployed - 31,999,889. They are far from "close", thus there might be some problems in my code.
+
+\newpage
+
+# Exercise 04 (2 points)
+#1.-3
+```{r}
+cps2021 <- filter(data, YEAR == 2021)
+cps2021_sum <- cps2021 %>%
+  summarise(n())
+cps2021_sum
+nber <- read_dta("cpsb202104.dta")
+nber_sum <- nber %>%
+  select(hufinal, pwcmpwgt) %>%
+  summarise(n())
+nber_sum
+```
+#3. Notice that n = 133,449. There are 133,449 observations in dataset "nber", while there are 111,003 observations in dataset "cps2021".
+
+#4. As it shows, there are 111,003 observations in nber_44, which match with the amount of the observations in dataset "cps2021".
+```{r}
+nber_44 <- filter(nber, hufinal <= 205)
+summarise(nber_44, n())
+```
+
+#5. Combine the columns.
+```{r}
+nber_cps <- bind_cols(cps2021, nber_44)
+nber_cps
+```
+
+#6.-9. adjust the weights to previous results.
+```{r}
+nber_cps_svy <- nber_cps %>%
+  mutate(pwcm_cal = pwcmpwgt/10000) %>%
+  as_survey_design(weights = pwcm_cal) %>%
+  mutate(
+    labor_force = case_when(
+      LABFORCE == 2 ~ 1,
+      LABFORCE == 1 ~ 0,
+      TRUE ~ 999
+    )
+  ) %>%
+  mutate(
+    employed = case_when(
+      EMPSTAT == 10 | EMPSTAT == 12 ~ 1,
+      EMPSTAT == 20 | EMPSTAT == 21 | EMPSTAT == 22 ~ 0,
+      TRUE ~ 999
+    )
+  ) %>%
+  mutate(
+    unemployed = case_when(
+      EMPSTAT == 10 | EMPSTAT == 12 ~ 0,
+      EMPSTAT == 20 | EMPSTAT == 21 | EMPSTAT == 22 ~ 1,
+      TRUE ~ 999
+    )
+  ) %>%
+  filter(AGE >= 16) %>%
+  filter(POPSTAT == 1) %>%
+  summarise(
+    LABFOR_cal = survey_total(labor_force == 1),
+    EMPLOY_cal = survey_total(employed == 1),
+    UNEMPLOY_cal = survey_total(unemployed == 1)
+            )
+nber_cps_svy
+```
+
+#10.The adjust results came out to be:labor force = 160,379,460; employed = 151,159,727; unemployed = 9,219,734.
+#Compared with the official data: civilian labor force = 160,379,000; employed = 151,160,000; unemployed = 9,220,000.
+#Now my results are very close to the official one.
+\newpage
+
+# Exercise 05 (2 points)
+```{r}
+library(ggplot2)
+p <- ggplot() +
+  geom_bar(data = cps_subset_92, 
+           aes(x = AprilWork, y = prop, fill = YEAR), 
+           stat = "identity",
+           position = position_dodge())
+p + ggtitle(label = "Working Hours 2020 & 2021",
+  subtitle = "the proportion of workers comparing working hours between April 2020 and April 2021") +
+  labs(caption = "Data source: CPS") + 
+  xlab("April Work (type)") + ylab("proportion")
+```

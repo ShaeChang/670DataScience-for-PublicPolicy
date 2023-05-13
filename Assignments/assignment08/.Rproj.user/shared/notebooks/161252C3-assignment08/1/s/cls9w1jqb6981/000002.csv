@@ -1,0 +1,7 @@
+"0","#creating the recipe"
+"0","bills_rec <- recipe(passed ~ description, data = bills_train) %>%"
+"0","  step_tokenize(description)%>%"
+"0","  step_stopwords(description) %>%"
+"0","  step_stem(description) %>%"
+"0","  step_tokenfilter(description, max_tokens = 200) %>% "
+"0","  step_tfidf(description) "

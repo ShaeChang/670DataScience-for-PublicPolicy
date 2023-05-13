@@ -1,0 +1,3 @@
+"0","#to draw the confusion matrix, assume that there are in all 100 observations in the population."
+"0","#for the first circumstance, if simply guessing the same value for all observations, then"
+"0","knitr::include_graphics(""guessing4_1.png"")"

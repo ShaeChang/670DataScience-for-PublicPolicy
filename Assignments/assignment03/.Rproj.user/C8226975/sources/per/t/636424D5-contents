@@ -1,0 +1,67 @@
+---
+title: "Data Science for Public Policy"
+author: "Xiyu Zhang - xz551"
+output:
+  html_document:
+    df_print: paged
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+```
+
+```{r include = FALSE}
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+```
+
+\begin{center}
+\Huge{PPOL 670 | Assignment 3}
+
+\Huge{Applied Introduction to R's Tidyverse}
+\end{center}
+
+\vspace{0.1in}
+
+```{r}
+library(tidyverse)
+library(ipumsr)
+library(srvyr)
+library(haven)
+
+```
+
+
+# Exercise 01 (1 point)
+
+```{r}
+library(ipumsr)
+library(tidyverse)
+ddi <- read_ipums_ddi("cps_00001.xml")
+data <- read_ipums_micro(ddi)
+glimpse(data)
+```
+
+
+\newpage
+
+# Exercise 02 (2 points)
+
+\newpage
+
+# Exercise 03 (2 points)
+
+\newpage
+
+# Exercise 04 (2 points)
+
+\newpage
+
+# Exercise 05 (2 points)

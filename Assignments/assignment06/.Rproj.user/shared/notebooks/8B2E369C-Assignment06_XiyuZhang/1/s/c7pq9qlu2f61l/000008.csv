@@ -1,0 +1,5 @@
+"0","# calculate the rmse on the testing data"
+"0","rmse1 <- rmse(data = prediction_k1, truth = pizza_proximity, estimate = .pred)"
+"0","rmse3 <- rmse(data = prediction_k3, truth = pizza_proximity, estimate = .pred)"
+"0","rmsen <- rmse(data = prediction_kn, truth = pizza_proximity, estimate = .pred)"
+"0","rmse1"

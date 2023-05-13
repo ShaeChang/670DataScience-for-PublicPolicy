@@ -1,0 +1,6 @@
+"0","bind_rows("
+"0","  `lasso` = show_best(lasso_fit_rs, metric = ""rmse"", n = 1),"
+"0","  `random forest` = show_best(rforest_rs, metric = ""rmse"", n = 1),"
+"0","  `knn` = show_best(knn_rs, metric = ""rmse"",n = 1),"
+"0","  .id = ""model"""
+"0",")"

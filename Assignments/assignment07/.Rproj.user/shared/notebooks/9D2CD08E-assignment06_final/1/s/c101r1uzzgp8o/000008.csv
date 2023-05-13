@@ -1,0 +1,3 @@
+"0",""
+"0","#calculate the accuracy and confusion matrix by hand"
+"0","knitr::include_graphics(""data/stretch01.png"")"
